@@ -13,24 +13,16 @@ from decimal import Decimal
 
 
 extensions = {
-    "image": [".jpg", '.JPG', ".jpeg", '.JPEG', ".png", ".gif", ".bmp", ".tiff",".webp",".ico",".raw",".heif",".bat",".indd"],
-    "document": [".doc", ".docx", ".pdf", ".txt", ".rtf", ".odt", ".xls",".xlsx", ".ppt", ".pptx", ".csv", ".pages", ".key", ".numbers", ".txt", ".md", ".html", ".epub"],
-    "audio": [".mp3", ".wav", ".aac", ".flac", ".ogg", ".wma", ".m4a", ".aiff",".alac",".ape",".dsd",".dff",".dsf",".mp2",".amr",".au",".ra",".wv"],
-    "video": [".mp4", ".mkv", ".avi", ".flv", ".wmv", ".mov", ".mpg", ".mpeg", ".3gp", ".m4v", ".webm", ".ogg", ".m2ts",".ts",".mts",".hevc",".vp9",".vp8",".asf",".rm",".swf",".drc",".gifv",".m2v",".mxf",".roq",".nsv"],
-    "archive": [".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2",".xz",".lzma",".arj",".cab",".chm",".deb",".dmg",".iso",".lzh",".msi",".rpm",".udf",".wim",".xar"]
+    "image": (".jpg", '.JPG', ".jpeg", '.JPEG', ".png", ".gif", ".bmp", ".tiff",".webp",".ico",".raw",".heif",".bat",".indd"),
+    "document": (".doc", ".docx", ".pdf", ".txt", ".rtf", ".odt", ".xls",".xlsx", ".ppt", ".pptx", ".csv", ".pages", ".key", ".numbers", ".txt", ".md", ".html", ".epub"),
+    "audio": (".mp3", ".wav", ".aac", ".flac", ".ogg", ".wma", ".m4a", ".aiff",".alac",".ape",".dsd",".dff",".dsf",".mp2",".amr",".au",".ra",".wv"),
+    "video": (".mp4", ".mkv", ".avi", ".flv", ".wmv", ".mov", ".mpg", ".mpeg", ".3gp", ".m4v", ".webm", ".ogg", ".m2ts",".ts",".mts",".hevc",".vp9",".vp8",".asf",".rm",".swf",".drc",".gifv",".m2v",".mxf",".roq",".nsv"),
+    "archive": (".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2",".xz",".lzma",".arj",".cab",".chm",".deb",".dmg",".iso",".lzh",".msi",".rpm",".udf",".wim",".xar")
 }
 
-icons = {
-    "image": "📸 - ",
-    "document": "📄 - ",
-    "audio": "🎵 - ",
-    "video": "🎬 - ",
-    "archive": "📚 - ",
-    "folder": "📂 - ",
-    "misc": "🔹 - "
-}
+icons = { "image": "📸 - ", "document": "📄 - ", "audio": "🎵 - ", "video": "🎬 - ", "archive": "📚 - ", "folder": "📂 - ", "misc": "🔹 - " }
 
-to_ignore = ['_to_be_kept', '_to_be_deleted', '.vscode', 'main.py', 'broom.py', '.git']
+to_ignore = ['_to_be_kept', '_to_be_deleted', '.vscode', '.git', '.gitignore', 'main.py', 'broom.py']
 
 # UTILITIES
 def get_formatted_size(size):
@@ -198,11 +190,13 @@ def broom():
             shutil.rmtree(os.path.join('_to_be_deleted'))
             print('\n           🧹 BROOMED FILES WERE DELETED 🧹')
     else:
+        shutil.rmtree(os.path.join('_to_be_deleted'))
         print("       No deleted files.")
     rebroom = input('\n        ❔ Would you like to Rebroom the folder ? y/n  ')
     if rebroom == 'y':
         broom()
-        
+    elif get_folder_size('_to_be_kept') == 0:
+        shutil.rmtree(os.path.join('_to_be_kept'))
 
 # Initial function call
 broom()
