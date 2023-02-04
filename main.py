@@ -6,11 +6,13 @@ from pathlib import Path
 import cv2
 import textract
 import csv
-import pandas as pd
 from pypdf import PdfReader as pdf
 from tabulate import tabulate
 from decimal import Decimal
+from pygame import mixer
+import imutils
 
+mixer.init()
 
 extensions = {
     "image": (".jpg", '.JPG', ".jpeg", '.JPEG', ".png", ".gif", ".bmp", ".tiff",".webp",".ico",".raw",".heif",".bat",".indd"),
@@ -46,21 +48,56 @@ def get_folder_size(folder_path):
                 total += get_folder_size(entry.path)
     return total
 
+def extract_frames(video_file):
+    cam = cv2.VideoCapture(video_file)
+    currentframe = 50
+    count = 1
+    cam.set(1, currentframe)
+    while(currentframe < 5000):
+        ret,frame = cam.read()
+        if ret:
+            name = os.path.join(os.getcwd(), 'frame___' + str(count) + '.jpg') 
+            cv2.imwrite(name, frame)
+            preview_image(name, 200)
+            os.remove(name)
+            currentframe += 1000
+            cam.set(1, currentframe)
+            count += 1
+        else:
+            break
+    cam.release()
+    cv2.destroyAllWindows()
+
 # MAIN FUNCTIONS
-def look_image(file):
+def preview_image(file, duration=1500):
     shutil.copy(file, '_temp_image_file')
-    cv2.namedWindow('- Broom -', cv2.WINDOW_NORMAL)
-    img = cv2.imread('_temp_image_file', cv2.IMREAD_ANYCOLOR)
+    img = cv2.imread(file, cv2.IMREAD_UNCHANGED)
+    scale_percent = 50 # percent of original size
+    width = int(img.shape[1] * scale_percent / 100)
+    height = int(img.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    
+    # resize image
+    if width > 800 or height > 500:
+        img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+
     display = True
     while display:
         cv2.imshow('- Broom -', img)
         cv2.setWindowProperty('- Broom -', cv2.WND_PROP_TOPMOST, 1)
-        cv2.waitKey(1500)
-        cv2.destroyAllWindows()
+        cv2.waitKey(duration)
         display = False
         os.remove('_temp_image_file')
 
-def look_csv(file):
+def preview_audio(file):
+    mixer.music.load(file)
+    duration = mixer.Sound(file).get_length()
+    dur_str = str(datetime.timedelta(seconds=duration)).split(':')
+    dur_str = f"{dur_str[1]}:{dur_str[2].split('.')[0]}"
+    print(f"      Audio file duration: {dur_str}")
+    mixer.music.play()
+
+def preview_csv(file):
     with open(file, newline='', encoding="utf-8") as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
         table = []
@@ -70,13 +107,13 @@ def look_csv(file):
         print(tabulate(table))
         print('...\n')
 
-def look_doc(file):
+def preview_doc(file):
     doc = textract.process(file)
     string = doc.decode('utf8')
     string = string.replace('\n\n', '\n')
     print(string[:256], '[...]')
 
-def look_pdf(file):
+def preview_pdf(file):
     doc = pdf(file)
     string = doc.pages[0].extract_text()
     print(string[:256], '[...]')
@@ -109,7 +146,11 @@ def manage(file):
 
     # Actions
     def take_action(file):
-        action = input('   ❔ \033[94m[Delete], [Look], [Open], [Keep], other key to skip :\033[0m    ')
+        action = input('   ❔ \033[94m[Delete], [Preview], [Open], [Keep], other key to skip :\033[0m    ')
+
+        if mixer.music.get_busy():
+            mixer.music.unload()
+
         if action == 'd':
             shutil.move(file, '_to_be_deleted/' + file)
         elif action == 'k':
@@ -117,18 +158,23 @@ def manage(file):
         elif action == 'o':
             os.startfile(file)
             take_action(file)
-        elif action == 'l':
+        elif action == 'p':
             if type == 'folder':
                 print('\033[95mfolder contents:\033[0m ', os.listdir(file))
             elif type == 'image' and ext != '.gif':
-                look_image(file)
+                preview_image(file)
+                cv2.destroyAllWindows()
+            elif type == 'audio':
+                preview_audio(file)
+            elif type == 'video':
+                extract_frames(file)
             elif type == 'document':
                 if ext == '.csv':
-                    look_csv(file)
+                    preview_csv(file)
                 elif ext in ['.txt', '.xlsx', '.xls', '.doc', '.docx', '.htm', '.html']:
-                    look_doc(file)
+                    preview_doc(file)
                 elif ext == '.pdf':
-                    look_pdf(file)
+                    preview_pdf(file)
                 else:
                     print('No preview available...')
             take_action(file)
@@ -185,14 +231,14 @@ def broom():
     print("\n    🧹 FOLDER HAS BEEN BROOMED 🧹")
     to_be_deleted_size = get_folder_size('_to_be_deleted')
     if to_be_deleted_size > 0:
-        destroy = input(f"        ❗ Would you like to destroy broomed files {get_formatted_size(to_be_deleted_size)} ? y/n  ")
+        destroy = input(f"        ❗ Would you like to destroy broomed files : {get_formatted_size(to_be_deleted_size)} ? \033[93my/n\033[0m  ")
         if destroy == 'y':
             shutil.rmtree(os.path.join('_to_be_deleted'))
             print('\n           🧹 BROOMED FILES WERE DELETED 🧹')
     else:
         shutil.rmtree(os.path.join('_to_be_deleted'))
         print("       No deleted files.")
-    rebroom = input('\n        ❔ Would you like to Rebroom the folder ? y/n  ')
+    rebroom = input("\n        ❔ Would you like to Rebroom the folder ? y/n  ")
     if rebroom == 'y':
         broom()
     elif get_folder_size('_to_be_kept') == 0:
